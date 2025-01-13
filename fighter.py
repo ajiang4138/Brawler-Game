@@ -1,5 +1,7 @@
 import pygame
 
+import colors
+
 
 class Figher():
     def __init__(self, player, x , y, flip, data, sprite_sheet, animation_steps, sound):
@@ -11,7 +13,7 @@ class Figher():
         
         self.flip = flip
         self.animation_list = self.load_images(sprite_sheet, animation_steps)
-        self.action = 0 #0:idle #1: run #2: jump #3: attack1 #4: attack2 #5: hit #6: death
+        self.action = 0 #0:idle #1: run #2: jump #3: attack1 #4: attack2 #5: hit #6: death #7: block
         self.frame_index = 0
         self.image = self.animation_list[self.action][self.frame_index]
         self.update_time = pygame.time.get_ticks()
@@ -21,6 +23,7 @@ class Figher():
         self.vel_y = 0
         self.running = False
         self.jump = False
+        self.blocking = False
         self.attacking = False
         self.attack_type = 0
         self.attack_cooldown = 0
@@ -63,8 +66,8 @@ class Figher():
         
         #       movement
         
-        #can only perform other actions, if not attacking
-        if self.attacking == False and self.alive == True and round_over == False:
+        #can only perform other actions, if not attacking or blocking
+        if self.attacking == False and self.blocking == False and self.alive == True and round_over == False:
             #check player 1 controls
             if self.player == 1:
                 #left and right
@@ -80,13 +83,16 @@ class Figher():
                     self.jump = True
                 #attack
                 if key[pygame.K_r] or key[pygame.K_t]:
-                    self.attack(target)
+                    self.attack(target, surface)
                     
                     #determine attack type
                     if key[pygame.K_r]:
                         self.attack_type = 1
                     if key[pygame.K_t]:
                         self.attack_type = 2
+                #block
+                if key[pygame.K_s]:
+                    self.block(surface)
             
             if self.player == 2:
                 #left and right
@@ -102,7 +108,7 @@ class Figher():
                     self.jump = True
                 #attack
                 if key[pygame.K_COMMA] or key[pygame.K_PERIOD]:
-                    self.attack(target)
+                    self.attack(target, surface)
                     
                     #determine attack type
                     if key[pygame.K_COMMA]:
@@ -142,7 +148,7 @@ class Figher():
             self.rect.y += dy
     
     #       handle animation updates
-    def update(self):
+    def update(self, surface):
         #check action player is performing
         if self.health <= 0:
             self.health = 0
@@ -155,6 +161,9 @@ class Figher():
                 self.update_action(3) #3: attack1
             elif self.attack_type == 2:
                 self.update_action(4) #4: attack2
+        elif self.blocking == True:
+            self.block_update(surface)
+            self.update_action(0)
         elif self.jump == True:
             self.update_action(2) #2: jump
         elif self.running == True:
@@ -194,17 +203,36 @@ class Figher():
                         self.attacking = False
                         self.attack_cooldown = 20
         
-    def attack(self, target):
+    def attack(self, target, surface):
         if (self.attack_cooldown == 0):
             #execute attack
             self.attacking = True
             self.attack_sound.play()
             attacking_rect = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), self.rect.y, 2 * self.rect.width, self.rect.height)
             
+            pygame.draw.rect(surface, colors.RED, attacking_rect)
+            
             #attack hit
             if attacking_rect.colliderect(target.rect):
-                target.health -= 10
-                target.hit = True
+                if target.blocking:
+                    target.health -= 0
+                    target.hit = True
+                    self.blocking = False
+                else:
+                    target.health -= 10
+                    target.hit = True
+    
+    def block(self, surface):
+        self.blocking = True
+        blocking_rect = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), self.rect.y, 2 * self.rect.width, self.rect.height)
+        pygame.draw.rect(surface, colors.WHITE, blocking_rect)
+        
+    def block_update(self, surface):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_s]:
+            self.block(surface)
+        else:
+            self.blocking = False
     
     def update_action(self, new_action):
         #checks if the new action is different than previous action

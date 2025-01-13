@@ -125,8 +125,8 @@ while run:
             last_count_update = pygame.time.get_ticks()
     
     #update fighters
-    fighter_1.update()
-    fighter_2.update()
+    fighter_1.update(screen)
+    fighter_2.update(screen)
     
     #draw fighters
     fighter_1.draw(screen)
