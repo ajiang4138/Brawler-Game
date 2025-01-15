@@ -27,6 +27,7 @@ class Figher():
         self.attacking = False
         self.attack_type = 0
         self.attack_cooldown = 0
+        self.block_cooldown = 0
         self.attack_sound = sound
         
         self.hit = False
@@ -115,6 +116,9 @@ class Figher():
                         self.attack_type = 1
                     if key[pygame.K_PERIOD]:
                         self.attack_type = 2
+                #block
+                if key[pygame.K_DOWN]:
+                    self.block(surface)
             
             #apply gravity
             self.vel_y += GRAVITY
@@ -142,6 +146,10 @@ class Figher():
             #       apply attack cooldown
             if self.attack_cooldown > 0:
                 self.attack_cooldown -= 1
+            
+            #       apply block cooldown
+            if self.block_cooldown > 0:
+                self.block_cooldown -= 1
                 
             #       update player position
             self.rect.x += dx
@@ -202,6 +210,11 @@ class Figher():
                         #check if player was in an attack, attack is stopped if struck
                         self.attacking = False
                         self.attack_cooldown = 20
+                        
+                        #check if player was blocking
+                        if self.blocking == True:
+                            self.blocking = False
+                            self.block_cooldown = 60
         
     def attack(self, target, surface):
         if (self.attack_cooldown == 0):
@@ -217,19 +230,23 @@ class Figher():
                 if target.blocking:
                     target.health -= 0
                     target.hit = True
-                    self.blocking = False
+                    target.block_cooldown = 60
+                    target.blocking = False
                 else:
                     target.health -= 10
                     target.hit = True
     
     def block(self, surface):
-        self.blocking = True
-        blocking_rect = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), self.rect.y, 2 * self.rect.width, self.rect.height)
-        pygame.draw.rect(surface, colors.WHITE, blocking_rect)
+        if self.block_cooldown == 0:
+            self.blocking = True
+            blocking_rect = pygame.Rect(self.rect.centerx - (2 * self.rect.width * self.flip), self.rect.y, 2 * self.rect.width, self.rect.height)
+            pygame.draw.rect(surface, colors.WHITE, blocking_rect)
         
     def block_update(self, surface):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_s]:
+            self.block(surface)
+        if keys[pygame.K_DOWN]:
             self.block(surface)
         else:
             self.blocking = False
